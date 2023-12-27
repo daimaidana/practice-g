@@ -77,8 +77,8 @@ def testQueries():
                 j.job, 
                 d.id department_id, 
                 d.department, 
-                strftime('%Y', he.datetime) year, 
-                strftime('%m', he.datetime) month,
+                CAST(strftime('%Y', he.datetime) as INTEGER) year, 
+                CAST(strftime('%m', he.datetime) as INTEGER) month,
                 count(*) employees_hired
               
                 FROM hired_employees he
@@ -96,7 +96,25 @@ def testQueries():
               -- I use inner to guarantee integrity, assuming empty values are not correct. 
             ''')
               
-    c.execute("SELECT count(*) FROM tmp_sum_employees;") 
+    c.execute('''
+                SELECT 
+                department, 
+                job, 
+                sum(case when month IN (1,2,3) then employees_hired else 0 end) as Q1,
+                sum(case when month IN (4,5,6) then employees_hired else 0 end) as Q2,
+                sum(case when month IN (7,8,9) then employees_hired else 0 end) as Q3,
+                sum(case when month IN (10,11,12) then employees_hired else 0 end) as Q4
+              
+                FROM tmp_sum_employees 
+                    where year = 2021
+                group by
+                department,
+                job 
+
+              order by department asc, job asc
+              ;
+              
+              ''') 
 
     rows = c.fetchall()
 
