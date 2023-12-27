@@ -12,9 +12,9 @@ logging.basicConfig(filename='api_logs.log', level=logging.ERROR)
 def create_tables():
     c = sqlite3.connect("globant.db").cursor()
 
-    c.execute("DROP TABLE IF EXISTS departments")    
-    c.execute("DROP TABLE IF EXISTS jobs")
-    c.execute("DROP TABLE IF EXISTS hired_employees")
+   # c.execute("DROP TABLE IF EXISTS departments")    
+   # c.execute("DROP TABLE IF EXISTS jobs")
+   # c.execute("DROP TABLE IF EXISTS hired_employees")
 
     c.execute("CREATE TABLE IF NOT EXISTS departments("
               "id INTEGER, department TEXT)")
@@ -70,8 +70,33 @@ def testQueries():
 
     #c.execute("SELECT id, department from departments") 
     #c.execute("SELECT * from jobs") 
-    c.execute("SELECT * from hired_employees limit 10") 
-
+    c.execute('''
+              CREATE TEMP VIEW tmp_sum_employees AS
+              SELECT 
+                j.id job_id, 
+                j.job, 
+                d.id department_id, 
+                d.department, 
+                strftime('%Y', he.datetime) year, 
+                strftime('%m', he.datetime) month,
+                count(*) employees_hired
+              
+                FROM hired_employees he
+                INNER JOIN jobs j on j.id = he.job_id
+                INNER JOIN departments d on d.id = he.department_id
+                WHERE he.name is not null 
+              
+                group by 
+                j.id, 
+                j.job, 
+                d.id, 
+                d.department, 
+                strftime('%Y', he.datetime), 
+                strftime('%m', he.datetime);
+              -- I use inner to guarantee integrity, assuming empty values are not correct. 
+            ''')
+              
+    c.execute("SELECT count(*) FROM tmp_sum_employees;") 
 
     rows = c.fetchall()
 
