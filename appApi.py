@@ -115,6 +115,50 @@ def testQueries():
               ;
               
               ''') 
+    
+    # Dataset para la media
+    c.execute('''
+              CREATE TEMP VIEW tmp_sum_departments as
+                SELECT 
+                department_id,
+                sum(employees_hired) hired
+                
+                FROM tmp_sum_employees 
+                    where year = 2021
+                group by
+                department_id;
+              ''') 
+
+    c.execute('''
+              CREATE TEMP VIEW tmp_departments_list as
+                SELECT 
+                department_id
+                
+                FROM tmp_sum_employees 
+                    
+                group by
+                department_id
+              
+                having sum(employees_hired) > ( Select avg(hired) from tmp_sum_departments );
+               ''') 
+
+    c.execute('''
+                SELECT 
+                department_id as id,
+                department, 
+                sum(employees_hired) as hired
+              
+                FROM tmp_sum_employees 
+                    where department_id in (select department_id from tmp_departments_list)
+              
+                group by
+                department_id,
+                department 
+
+              order by sum(employees_hired) desc;
+              
+              ''') 
+
 
     rows = c.fetchall()
 
@@ -123,7 +167,7 @@ def testQueries():
     db.commit()
     db.close()
     
-    return json.dumps("Success")
+    return json.dumps(rows)
 
 
 @app.route('/getEmployeesHiredPerJobAndDepartment', methods=['GET'])
