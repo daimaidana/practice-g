@@ -25,6 +25,37 @@ def create_tables():
 
     c.connection.close()
 
+
+def create_tmp_general_view(c):
+    
+    c.execute('''
+              CREATE TEMP VIEW tmp_sum_employees AS
+              SELECT 
+                j.id job_id, 
+                j.job, 
+                d.id department_id, 
+                d.department, 
+                CAST(strftime('%Y', he.datetime) as INTEGER) year, 
+                CAST(strftime('%m', he.datetime) as INTEGER) month,
+                count(*) employees_hired
+              
+                FROM hired_employees he
+                INNER JOIN jobs j on j.id = he.job_id
+                INNER JOIN departments d on d.id = he.department_id
+                WHERE he.name is not null 
+              
+                group by 
+                j.id, 
+                j.job, 
+                d.id, 
+                d.department, 
+                strftime('%Y', he.datetime), 
+                strftime('%m', he.datetime);
+              -- I use inner to guarantee integrity, assuming empty values are not correct. 
+            ''')
+    
+
+
 @app.route('/upload', methods=['POST'])
 def upload():
     db = sqlite3.connect("globant.db")
@@ -177,16 +208,29 @@ def getEmployeesHiredPerJobAndDepartment():
 
     c = db.cursor()
 
-    c.execute("SELECT * from departments") 
+    create_tmp_general_view(c)
+
+    c.execute('''
+                SELECT 
+                department, 
+                job, 
+                sum(case when month IN (1,2,3) then employees_hired else 0 end) as Q1,
+                sum(case when month IN (4,5,6) then employees_hired else 0 end) as Q2,
+                sum(case when month IN (7,8,9) then employees_hired else 0 end) as Q3,
+                sum(case when month IN (10,11,12) then employees_hired else 0 end) as Q4
+              
+                FROM tmp_sum_employees 
+                    where year = 2021
+                group by
+                department,
+                job 
+
+              order by department asc, job asc;  ''') 
 
     rows = c.fetchall()
-
-    print(rows)
-
-    db.commit()
     db.close()
     
-    return json.dumps(rows[0])
+    return json.dumps(rows)
 
 
 if __name__ == '__main__':
