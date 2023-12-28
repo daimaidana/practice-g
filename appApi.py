@@ -12,9 +12,9 @@ logging.basicConfig(filename='api_logs.log', level=logging.ERROR)
 def create_tables():
     c = sqlite3.connect("globant.db").cursor()
 
-   # c.execute("DROP TABLE IF EXISTS departments")    
-   # c.execute("DROP TABLE IF EXISTS jobs")
-   # c.execute("DROP TABLE IF EXISTS hired_employees")
+    c.execute("DROP TABLE IF EXISTS departments")    
+    c.execute("DROP TABLE IF EXISTS jobs")
+    c.execute("DROP TABLE IF EXISTS hired_employees")
 
     c.execute("CREATE TABLE IF NOT EXISTS departments("
               "id INTEGER, department TEXT)")
@@ -26,9 +26,9 @@ def create_tables():
     c.connection.close()
 
 
-def create_tmp_general_view(c):
+def create_tmp_general_view(cursor):
     
-    c.execute('''
+    cursor.execute('''
               CREATE TEMP VIEW tmp_sum_employees AS
               SELECT 
                 j.id job_id, 
@@ -92,41 +92,16 @@ def upload():
         return json.dumps("Files are not named correctly.")
 
 
-@app.route('/testQueries', methods=['GET'])
-def testQueries():
+
+@app.route('/employees-hired-per-job-and-department', methods=['GET'])
+def get_employees_hired_per_job_and_department():
     
     db = sqlite3.connect("globant.db")
 
     c = db.cursor()
 
-    #c.execute("SELECT id, department from departments") 
-    #c.execute("SELECT * from jobs") 
-    c.execute('''
-              CREATE TEMP VIEW tmp_sum_employees AS
-              SELECT 
-                j.id job_id, 
-                j.job, 
-                d.id department_id, 
-                d.department, 
-                CAST(strftime('%Y', he.datetime) as INTEGER) year, 
-                CAST(strftime('%m', he.datetime) as INTEGER) month,
-                count(*) employees_hired
-              
-                FROM hired_employees he
-                INNER JOIN jobs j on j.id = he.job_id
-                INNER JOIN departments d on d.id = he.department_id
-                WHERE he.name is not null 
-              
-                group by 
-                j.id, 
-                j.job, 
-                d.id, 
-                d.department, 
-                strftime('%Y', he.datetime), 
-                strftime('%m', he.datetime);
-              -- I use inner to guarantee integrity, assuming empty values are not correct. 
-            ''')
-              
+    create_tmp_general_view(c)
+
     c.execute('''
                 SELECT 
                 department, 
@@ -142,11 +117,23 @@ def testQueries():
                 department,
                 job 
 
-              order by department asc, job asc
-              ;
-              
-              ''') 
+              order by department asc, job asc;  ''') 
+
+    rows = c.fetchall()
+    db.close()
     
+    return json.dumps(rows)
+
+
+@app.route('/departments-that-hired-more-than-the-mean', methods=['GET'])
+def get_departments_that_hired_more_than_the_mean():
+    
+    db = sqlite3.connect("globant.db")
+
+    c = db.cursor()
+
+    create_tmp_general_view(c)
+
     # Dataset para la media
     c.execute('''
               CREATE TEMP VIEW tmp_sum_departments as
@@ -189,43 +176,6 @@ def testQueries():
               order by sum(employees_hired) desc;
               
               ''') 
-
-
-    rows = c.fetchall()
-
-    print(rows)
-
-    db.commit()
-    db.close()
-    
-    return json.dumps(rows)
-
-
-@app.route('/getEmployeesHiredPerJobAndDepartment', methods=['GET'])
-def getEmployeesHiredPerJobAndDepartment():
-    
-    db = sqlite3.connect("globant.db")
-
-    c = db.cursor()
-
-    create_tmp_general_view(c)
-
-    c.execute('''
-                SELECT 
-                department, 
-                job, 
-                sum(case when month IN (1,2,3) then employees_hired else 0 end) as Q1,
-                sum(case when month IN (4,5,6) then employees_hired else 0 end) as Q2,
-                sum(case when month IN (7,8,9) then employees_hired else 0 end) as Q3,
-                sum(case when month IN (10,11,12) then employees_hired else 0 end) as Q4
-              
-                FROM tmp_sum_employees 
-                    where year = 2021
-                group by
-                department,
-                job 
-
-              order by department asc, job asc;  ''') 
 
     rows = c.fetchall()
     db.close()
