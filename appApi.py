@@ -87,17 +87,14 @@ def upload():
         return json.dumps("Successfull import.")
     
     else:
-        db.commit()
         db.close()
         return json.dumps("Files are not named correctly.")
-
 
 
 @app.route('/employees-hired-per-job-and-department', methods=['GET'])
 def get_employees_hired_per_job_and_department():
     
     db = sqlite3.connect("globant.db")
-
     c = db.cursor()
 
     create_tmp_general_view(c)
@@ -115,9 +112,9 @@ def get_employees_hired_per_job_and_department():
                     where year = 2021
                 group by
                 department,
-                job 
-
-              order by department asc, job asc;  ''') 
+                job
+                
+                order by department asc, job asc;  ''') 
 
     rows = c.fetchall()
     db.close()
@@ -129,9 +126,7 @@ def get_employees_hired_per_job_and_department():
 def get_departments_that_hired_more_than_the_mean():
     
     db = sqlite3.connect("globant.db")
-
     c = db.cursor()
-
     create_tmp_general_view(c)
 
     # Dataset para la media
