@@ -3,7 +3,7 @@
 ### Dependences:
 
 - pip install pandas
-- pip install Flasks
+- pip install Flask
 
 ### Selected database: Sqlite3
 - SQLite is file-based. It is not scalable, it's just for the exercise.
