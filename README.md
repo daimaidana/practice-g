@@ -6,7 +6,7 @@
 - pip install Flasks
 
 ### Selected database: Sqlite3
-- SQLite is file-based. No es escalable, es para el ejemplo del ejercicio. 
+- SQLite is file-based. It is not scalable, it's just for the exercise.
 
 ### Local REST API methods:
 
