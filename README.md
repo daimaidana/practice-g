@@ -1,6 +1,6 @@
 # Globant Coding Challenge
 
-### Dependencias:
+### Dependences:
 
 - pip install pandas
 - pip install Flasks
